@@ -122,8 +122,8 @@ require (
 	github.com/miekg/dns v1.1.50
 	github.com/moby/ipvs v1.1.0
 	github.com/multiplay/go-ts3 v1.1.0
-	github.com/nats-io/nats-server/v2 v2.9.9
-	github.com/nats-io/nats.go v1.19.0
+	github.com/nats-io/nats-server/v2 v2.9.14
+	github.com/nats-io/nats.go v1.23.0
 	github.com/netsampler/goflow2 v1.1.1
 	github.com/newrelic/newrelic-telemetry-sdk-go v0.8.1
 	github.com/nsqio/go-nsq v1.1.0
@@ -424,7 +424,7 @@ require (
 	go.uber.org/multierr v1.9.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/exp v0.0.0-20230202163644-54bba9f4231b
-	golang.org/x/time v0.1.0 // indirect
+	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20211209221555-9c9e7e272434 // indirect
