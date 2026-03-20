@@ -1,6 +1,7 @@
 package snmp
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -215,7 +216,7 @@ func TestTableBuildNoWalkGosmi(t *testing.T) {
 }
 
 func TestFieldConvertGosmi(t *testing.T) {
-	testTable := []struct {
+	tests := []struct {
 		input    interface{}
 		conv     string
 		expected interface{}
@@ -260,18 +261,22 @@ func TestFieldConvertGosmi(t *testing.T) {
 		{[]byte("abcdefghijklmnop"), "ipaddr", "6162:6364:6566:6768:696a:6b6c:6d6e:6f70"},
 		{3, "enum", "testing"},
 		{3, "enum(1)", "testing(3)"},
+		{3, "displayhint", "testing(3)"},
 	}
 
-	for _, tc := range testTable {
-		f := Field{
-			Name:       "test",
-			Conversion: tc.conv,
-		}
-		require.NoError(t, f.Init(getGosmiTr(t)))
+	tr := getGosmiTr(t)
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s %[2]T %[2]v", tt.conv, tt.input), func(t *testing.T) {
+			f := Field{
+				Name:       "test",
+				Conversion: tt.conv,
+			}
+			require.NoError(t, f.Init(tr))
 
-		act, err := f.Convert(gosnmp.SnmpPDU{Name: ".1.3.6.1.2.1.2.2.1.8", Value: tc.input})
-		require.NoError(t, err, "input=%T(%v) conv=%s expected=%T(%v)", tc.input, tc.input, tc.conv, tc.expected, tc.expected)
-		require.EqualValues(t, tc.expected, act, "input=%T(%v) conv=%s expected=%T(%v)", tc.input, tc.input, tc.conv, tc.expected, tc.expected)
+			actual, err := f.Convert(gosnmp.SnmpPDU{Name: ".1.3.6.1.2.1.2.2.1.8", Value: tt.input})
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, actual)
+		})
 	}
 }
 
