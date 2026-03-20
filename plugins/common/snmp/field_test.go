@@ -25,6 +25,7 @@ func TestFieldInitFail(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.field.Name = "foobar"
 			require.Error(t, tt.field.Init(nil))
+			require.False(t, tt.field.initialized)
 		})
 	}
 }

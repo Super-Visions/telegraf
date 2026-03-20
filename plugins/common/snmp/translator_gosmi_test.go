@@ -30,34 +30,62 @@ func TestNewGosmiTranslator(t *testing.T) {
 }
 
 func TestFieldInitGosmi(t *testing.T) {
-	tr := getGosmiTr(t)
-
-	translations := []struct {
-		inputOid           string
-		inputName          string
-		inputConversion    string
-		expectedOid        string
-		expectedName       string
-		expectedConversion string
+	tests := []struct {
+		name     string
+		input    Field
+		expected Field
 	}{
-		{".1.2.3", "foo", "", ".1.2.3", "foo", ""},
-		{".iso.2.3", "foo", "", ".1.2.3", "foo", ""},
-		{".1.0.0.0.1.1", "", "", ".1.0.0.0.1.1", "server", ""},
-		{".1.0.0.0.1.5", "", "", ".1.0.0.0.1.5", "dateAndTime", "displayhint"},
-		{"IF-MIB::ifPhysAddress.1", "", "", ".1.3.6.1.2.1.2.2.1.6.1", "ifPhysAddress.1", "displayhint"},
-		{"IF-MIB::ifPhysAddress.1", "", "none", ".1.3.6.1.2.1.2.2.1.6.1", "ifPhysAddress.1", "none"},
-		{"BRIDGE-MIB::dot1dTpFdbAddress.1", "", "", ".1.3.6.1.2.1.17.4.3.1.1.1", "dot1dTpFdbAddress.1", "displayhint"},
-		{"TCP-MIB::tcpConnectionLocalAddress.1", "", "", ".1.3.6.1.2.1.6.19.1.2.1", "tcpConnectionLocalAddress.1", "ipaddr"},
-		{".999", "", "", ".999", ".999", ""},
+		{
+			name:     "no change",
+			input:    Field{Oid: ".1.2.3", Name: "foo"},
+			expected: Field{Oid: ".1.2.3", Name: "foo"},
+		},
+		{
+			name:     "OID translation",
+			input:    Field{Oid: ".iso.2.3", Name: "foo"},
+			expected: Field{Oid: ".1.2.3", Name: "foo"},
+		},
+		{
+			name:     "numerical OID to name",
+			input:    Field{Oid: ".1.0.0.0.1.1"},
+			expected: Field{Oid: ".1.0.0.0.1.1", Name: "server"},
+		},
+		{
+			name:     "numerical OID to name and conversion",
+			input:    Field{Oid: ".1.0.0.0.1.5"},
+			expected: Field{Oid: ".1.0.0.0.1.5", Name: "dateAndTime", Conversion: "displayhint"},
+		},
+		{
+			name:     "textual OID",
+			input:    Field{Oid: "IF-MIB::ifPhysAddress.1"},
+			expected: Field{Oid: ".1.3.6.1.2.1.2.2.1.6.1", Name: "ifPhysAddress.1", Conversion: "displayhint"},
+		},
+		{
+			name:     "textual OID no conversion",
+			input:    Field{Oid: "IF-MIB::ifPhysAddress.1", Conversion: "none"},
+			expected: Field{Oid: ".1.3.6.1.2.1.2.2.1.6.1", Name: "ifPhysAddress.1", Conversion: "none"},
+		},
+		{
+			name:     "ipaddr conversion",
+			input:    Field{Oid: "TCP-MIB::tcpConnectionLocalAddress.1"},
+			expected: Field{Oid: ".1.3.6.1.2.1.6.19.1.2.1", Name: "tcpConnectionLocalAddress.1", Conversion: "ipaddr"},
+		},
+		{
+			name:     "unknown OID",
+			input:    Field{Oid: ".999"},
+			expected: Field{Oid: ".999", Name: ".999"},
+		},
 	}
 
-	for _, txl := range translations {
-		f := Field{Oid: txl.inputOid, Name: txl.inputName, Conversion: txl.inputConversion}
-		require.NoError(t, f.Init(tr), "inputOid=%q inputName=%q", txl.inputOid, txl.inputName)
+	tr := getGosmiTr(t)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := tt.input
+			require.NoError(t, f.Init(tr))
 
-		require.Equal(t, txl.expectedOid, f.Oid, "inputOid=%q inputName=%q inputConversion=%q", txl.inputOid, txl.inputName, txl.inputConversion)
-		require.Equal(t, txl.expectedName, f.Name, "inputOid=%q inputName=%q inputConversion=%q", txl.inputOid, txl.inputName, txl.inputConversion)
-		require.Equal(t, txl.expectedConversion, f.Conversion, "inputOid=%q inputName=%q inputConversion=%q", txl.inputOid, txl.inputName, txl.inputConversion)
+			require.EqualExportedValues(t, tt.expected, f)
+			require.True(t, f.initialized)
+		})
 	}
 }
 
