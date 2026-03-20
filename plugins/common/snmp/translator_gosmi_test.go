@@ -19,7 +19,7 @@ func getGosmiTr(t *testing.T) Translator {
 	return tr
 }
 
-func TestGosmiTranslator(t *testing.T) {
+func TestNewGosmiTranslator(t *testing.T) {
 	var tr Translator
 	var err error
 
@@ -60,6 +60,14 @@ func TestFieldInitGosmi(t *testing.T) {
 	}
 }
 
+func TestFieldInitFailGosmi(t *testing.T) {
+	f := Field{
+		Oid: "RFC1213-MIB::",
+	}
+
+	require.Error(t, f.Init(getGosmiTr(t)))
+}
+
 func TestTableInitGosmi(t *testing.T) {
 	tbl := Table{
 		Oid: ".1.3.6.1.2.1.3.1",
@@ -70,8 +78,7 @@ func TestTableInitGosmi(t *testing.T) {
 		},
 	}
 
-	tr := getGosmiTr(t)
-	require.NoError(t, tbl.Init(tr))
+	require.NoError(t, tbl.Init(getGosmiTr(t)))
 
 	require.Equal(t, "atTable", tbl.Name)
 
@@ -98,95 +105,7 @@ func TestTableInitGosmi(t *testing.T) {
 	require.Empty(t, tbl.Fields[4].Conversion)
 }
 
-// TestTableBuild_walk in snmp_test.go is split into two tests here,
-// noTranslate and Translate.
-//
-// This is only running with gosmi translator but should be valid with
-// netsnmp too.
-func TestTableBuild_walk_noTranslate(t *testing.T) {
-	tbl := Table{
-		Name:       "mytable",
-		IndexAsTag: true,
-		Fields: []Field{
-			{
-				Name:  "myfield1",
-				Oid:   ".1.0.0.0.1.1",
-				IsTag: true,
-			},
-			{
-				Name: "myfield2",
-				Oid:  ".1.0.0.0.1.2",
-			},
-			{
-				Name:       "myfield3",
-				Oid:        ".1.0.0.0.1.3",
-				Conversion: "float",
-			},
-			{
-				Name:           "myfield4",
-				Oid:            ".1.0.0.2.1.5",
-				OidIndexSuffix: ".9.9",
-			},
-			{
-				Name:           "myfield5",
-				Oid:            ".1.0.0.2.1.5",
-				OidIndexLength: 1,
-			},
-		},
-	}
-
-	tb, err := tbl.Build(tsc, true)
-	require.NoError(t, err)
-	require.Equal(t, "mytable", tb.Name)
-	rtr1 := RTableRow{
-		Tags: map[string]string{
-			"myfield1": "foo",
-			"index":    "0",
-		},
-		Fields: map[string]interface{}{
-			"myfield2": 1,
-			"myfield3": float64(0.123),
-			"myfield4": 11,
-			"myfield5": 11,
-		},
-	}
-	rtr2 := RTableRow{
-		Tags: map[string]string{
-			"myfield1": "bar",
-			"index":    "1",
-		},
-		Fields: map[string]interface{}{
-			"myfield2": 2,
-			"myfield3": float64(0.456),
-			"myfield4": 22,
-			"myfield5": 22,
-		},
-	}
-	rtr3 := RTableRow{
-		Tags: map[string]string{
-			"index": "2",
-		},
-		Fields: map[string]interface{}{
-			"myfield2": 0,
-			"myfield3": float64(0.0),
-		},
-	}
-	rtr4 := RTableRow{
-		Tags: map[string]string{
-			"index": "3",
-		},
-		Fields: map[string]interface{}{
-			"myfield3": float64(9.999),
-		},
-	}
-	require.Len(t, tb.Rows, 4)
-	require.Contains(t, tb.Rows, rtr1)
-	require.Contains(t, tb.Rows, rtr2)
-	require.Contains(t, tb.Rows, rtr3)
-	require.Contains(t, tb.Rows, rtr4)
-}
-
-func TestTableBuild_walk_Translate(t *testing.T) {
+func TestTableBuildWalkGosmi(t *testing.T) {
 	tbl := Table{
 		Name:       "atTable",
 		IndexAsTag: true,
@@ -249,7 +168,7 @@ func TestTableBuild_walk_Translate(t *testing.T) {
 	require.Contains(t, tb.Rows, rtr3)
 }
 
-func TestTableBuild_noWalkGosmi(t *testing.T) {
+func TestTableBuildNoWalkGosmi(t *testing.T) {
 	tbl := Table{
 		Name: "mytable",
 		Fields: []Field{
@@ -356,7 +275,7 @@ func TestFieldConvertGosmi(t *testing.T) {
 	}
 }
 
-func TestSnmpFormatDisplayHint(t *testing.T) {
+func TestSnmpFormatDisplayHintGosmi(t *testing.T) {
 	tests := []struct {
 		name     string
 		oid      string
@@ -398,7 +317,7 @@ func TestSnmpFormatDisplayHint(t *testing.T) {
 	}
 }
 
-func TestTableJoin_walkGosmi(t *testing.T) {
+func TestTableJoinWalkGosmi(t *testing.T) {
 	tbl := Table{
 		Name:       "mytable",
 		IndexAsTag: true,
@@ -475,7 +394,7 @@ func TestTableJoin_walkGosmi(t *testing.T) {
 	require.Contains(t, tb.Rows, rtr3)
 }
 
-func TestTableOuterJoin_walkGosmi(t *testing.T) {
+func TestTableOuterJoinWalkGosmi(t *testing.T) {
 	tbl := Table{
 		Name:       "mytable",
 		IndexAsTag: true,
@@ -562,7 +481,7 @@ func TestTableOuterJoin_walkGosmi(t *testing.T) {
 	require.Contains(t, tb.Rows, rtr4)
 }
 
-func TestTableJoinNoIndexAsTag_walkGosmi(t *testing.T) {
+func TestTableJoinNoIndexAsTagWalkGosmi(t *testing.T) {
 	tbl := Table{
 		Name:       "mytable",
 		IndexAsTag: false,
@@ -638,16 +557,7 @@ func TestTableJoinNoIndexAsTag_walkGosmi(t *testing.T) {
 	require.Contains(t, tb.Rows, rtr3)
 }
 
-func TestCanNotParse(t *testing.T) {
-	tr := getGosmiTr(t)
-	f := Field{
-		Oid: "RFC1213-MIB::",
-	}
-
-	require.Error(t, f.Init(tr))
-}
-
-func TestTrapLookup(t *testing.T) {
+func TestTrapLookupGosmi(t *testing.T) {
 	tests := []struct {
 		name     string
 		oid      string
@@ -697,7 +607,7 @@ func TestTrapLookup(t *testing.T) {
 	}
 }
 
-func TestTrapLookupFail(t *testing.T) {
+func TestTrapLookupFailGosmi(t *testing.T) {
 	tests := []struct {
 		name     string
 		oid      string
